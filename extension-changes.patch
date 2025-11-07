@@ -1,0 +1,95 @@
+# Chrome Extension Changes for browser_new_page
+
+This patch describes the changes needed in the Browser MCP Chrome extension
+to support the `browser_new_page` tool.
+
+NOTE: The extension uses minified/compiled JavaScript. The changes below show
+the conceptual modifications. Line numbers are approximate based on the
+compiled output structure.
+
+## File: background.js (compiled/minified)
+
+### 1. Add Tool Schema Definition
+
+Location: After other tool schemas (after `pq`, around line 587)
+
+```javascript
+pq2=H.object({
+  name:H.literal("browser_new_page"),
+  description:H.literal("Open a URL in a new browser tab"),
+  arguments:H.object({
+    url:H.string().describe("The URL to open in a new tab")
+  })
+})
+```
+
+### 2. Add to Discriminated Union
+
+Location: In the `Iq` discriminated union definition (around line 587)
+
+```javascript
+Iq=H.discriminatedUnion("name",[
+  pq,
+  pq2,  // <-- ADD THIS
+  gq,
+  mq,
+  // ... rest of tools
+])
+```
+
+### 3. Add Message Handler
+
+Location: In the `Lq` message handler object (around line 587)
+
+```javascript
+const Lq={
+  browser_navigate:async({url:t},e)=>{
+    const{tabId:n}=e;
+    await GH(t,n)
+  },
+  browser_new_page:async({url:t},e)=>{  // <-- ADD THIS
+    await chrome.tabs.create({url:t})
+  },
+  browser_go_back:async(t,e)=>{
+    // ... rest of handlers
+  },
+  // ...
+}
+```
+
+## Summary of Changes
+
+1. **Schema Definition**: Added `pq2` variable with Zod schema for `browser_new_page` tool
+2. **Union Registration**: Added `pq2` to the `Iq` discriminated union
+3. **Handler**: Added `browser_new_page` handler that calls `chrome.tabs.create({url})`
+
+## Testing
+
+After applying these changes:
+1. Load the extension as unpacked in Chrome
+2. Connect to a tab
+3. Use MCP client to call `browser_new_page` with a URL
+4. Verify a new tab opens with the specified URL
+
+## Build Notes
+
+If the extension has a build process (TypeScript/bundler), these changes
+should be made in the source files before compilation. The schema definition
+should use proper Zod imports and the handler should follow the existing
+pattern for other tools.
+
+If modifying the compiled output directly (as was done for testing):
+- Back up the original background.js
+- Add the three sections shown above to the minified code
+- Test thoroughly as minified code is fragile
+
+## Version Tested
+
+- Browser MCP Extension: v1.3.4
+- Modification Date: 2025-11-07
+- Tested with: Chrome 131.x
+
+## Related
+
+This extension change works with the corresponding MCP server changes that
+add the `browser_new_page` tool to the server's tool list.

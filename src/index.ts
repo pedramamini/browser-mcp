@@ -28,6 +28,7 @@ const customTools: Tool[] = [custom.getConsoleLogs, custom.screenshot];
 
 const snapshotTools: Tool[] = [
   common.navigate(true),
+  common.newPage(true),
   common.goBack(true),
   common.goForward(true),
   snapshot.snapshot,

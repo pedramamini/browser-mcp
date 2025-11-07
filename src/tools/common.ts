@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
 import {
@@ -118,3 +119,30 @@ export const pressKey: Tool = {
     };
   },
 };
+
+const NewPageSchema = z.object({
+  url: z.string().describe("The URL to open in a new tab"),
+});
+
+export const newPage: ToolFactory = (snapshot) => ({
+  schema: {
+    name: "browser_new_page",
+    description: "Open a URL in a new browser tab",
+    inputSchema: zodToJsonSchema(NewPageSchema),
+  },
+  handle: async (context, params) => {
+    const { url } = NewPageSchema.parse(params);
+    await context.sendSocketMessage("browser_new_page", { url });
+    if (snapshot) {
+      return captureAriaSnapshot(context);
+    }
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Opened ${url} in a new tab`,
+        },
+      ],
+    };
+  },
+});
